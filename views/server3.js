@@ -160,7 +160,7 @@ socket.on('store',function(data){
     socket.on('send_message', async (data)=> {
         inserted = await inserting(data.other,data.user_id,data.mesg);
         if(users_idss[data.other]!=''){
-             msg='<div class="d-flex flex-row justify-content-start mb-4"><img src="../images/man.jpg" alt="avatar 1" style="width: 45px; height: 100%;"><div><p class="small p-2 ms-3 mb-1 rounded-3" style="background-color: #f5f6f7;">'+data.mesg+'</p></div></div>';
+             msg='<div class="media media-chat"><img class="avatar" src="https://img.icons8.com/color/36/000000/administrator-male.png" alt="..."><div class="media-body"><p>'+data.mesg+'</p></div></div>';
             socket.to(users_idss[data.other]).emit('msg_received',msg)
         }
     })
@@ -170,31 +170,26 @@ socket.on('get_msg',async (data)=>{
     var dismsg='';
     for(const mainmsgings of mainmsging){
         if(mainmsgings.sender_id==data[0]){            
-            dismsg+='<div class="d-flex flex-row justify-content-end"><div><p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">'+mainmsgings.msg_content+'</p></div><img src="../images/woman.jpg" alt="avatar 1" style="width: 45px; height: 100%;"></div>';
+            dismsg+='<div class="media media-chat media-chat-reverse"><div class="media-body"><p>'+mainmsgings.msg_content+'</p></div></div>';
         }else{
-            dismsg+='<div class="d-flex flex-row justify-content-start mb-4"><img src="../images/man.jpg" alt="avatar 1" style="width: 45px; height: 100%;"><div><p class="small p-2 ms-3 mb-1 rounded-3" style="background-color: #f5f6f7;">'+mainmsgings.msg_content+'</p></div></div>';
+            dismsg+='<div class="media media-chat"><img class="avatar" src="https://img.icons8.com/color/36/000000/administrator-male.png" alt="..."><div class="media-body"><p>'+mainmsgings.msg_content+'</p></div></div>';
         }
     }
     socket.emit('dis',dismsg);    
-    function checkedStat(){
-        socket.emit('status',online_status[data[0]]);
-        if(online_status[data[1]]=='online'){        
-            socket.emit('statuss',1);
-        }else{
-            socket.emit('statuss',0);
-        } 
-    }   
-    setInterval(checkedStat, 1500)
+    socket.emit('status',online_status[data[0]]);
+    if(online_status[data[1]]=='online'){        
+        socket.emit('statuss',1);
+    }else{
+        socket.emit('statuss',0);
+    }    
 })
 
 
 socket.on('online',function(data){  
     online_status[data]='online';
-    console.log(online_status);
 })
 
-socket.on('logout',function(data){
-    console.log(online_status[data]);    
+socket.on('disconnect',function(data){    
     online_status[data]='offline';
     console.log(online_status);
 })
