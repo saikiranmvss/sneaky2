@@ -124,7 +124,19 @@ db.query(sqlm,[mined_id,othermsgid,othermsgid,mined_id],function(err,res){
 })
 }
 
+chatName= function(id){
+    var sqlm='select name from users where user_id=?';
+return new Promise((resolve,reject)=>{
+db.query(sqlm,[id],function(err,res){
+    return resolve(res);
+})
+
+})
+
+}
+
 app.get('/homepage',async (req,res) =>{
+    var receivers_ids=[];
     if(req.session.user_id){                
         elements=await callbacking(req.session.user_id);
         array.length=0;
@@ -132,8 +144,9 @@ app.get('/homepage',async (req,res) =>{
         for(const element of elements){
         msg_array.push(await messagess(req.session.user_id,element.receiver_id));           
          array.push(await names(element.receiver_id));
+         receivers_ids.push(element.receiver_id);
         }
-        res.render('home.ejs',{elements:elements,array,msg_array,sessioned_id:req.session.user_id})
+        res.render('home.ejs',{elements:elements,array,msg_array,sessioned_id:req.session.user_id,receivers_ids:receivers_ids})
 }else{
         res.render('login.ejs');
     }
@@ -201,6 +214,11 @@ socket.on('logout',function(data){
 
 socket.on('/goout',function(){
     socket.disconnect();
+})
+
+socket.on('name',async(data) => {
+    chatNames=await chatName(data);    
+    socket.emit('usersname',chatNames[0].name);
 })
 
 })
