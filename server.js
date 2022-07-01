@@ -5,9 +5,11 @@ var session = require('express-session');
 var fs=require('fs');
 var app = express();
 const http = require('http');
-const server = http.createServer(app);
+const server = http.createServer(app)
 const { Server } = require("socket.io");
 const io = new Server(server);  
+// const WebSocket = require('ws');
+// const wss = new WebSocket(server);
 var bodyParser = require('body-parser');
 var db=mysql.createConnection({ host:'localhost',user:'root',password:'',database:'chatapp'});
 app.use(session({secret: "Shh, its a secret!",saveUninitialized:true,resave:false}));
@@ -22,7 +24,6 @@ app.get('/',function(requ,res){
 app.post('/signup',function(req,res){
     var form = new formidable.IncomingForm();
     form.parse(req, function (err, fields, files) {
-
         var oldpath = files.files.filepath;
         var newpath = 'C:/Users/Win/node/sneaky/images/' + files.files.originalFilename;
         fs.rename(oldpath, newpath, function (err) {});
@@ -74,7 +75,7 @@ app.post('/home',function(req,res){
     })
 })
 
-/* homepage */
+// SQL QUERIES
 
 callbacking = function(user_ids){
     return new Promise((resolve,reject) => {
@@ -104,8 +105,7 @@ messagess=function(userss_id,others_uid){
     })
 }
 
-inserting= function(other,main,mesg){
-    console.log(other,main,mesg);
+inserting= function(other,main,mesg){     
     var sql="insert into users_messages(msg_content,msg_status,receiver_id,receiver_status,sender_id,sender_status,user_id)values(?,1,?,1,?,1,?)";
     return new Promise((resolve,reject)=> {
         db.query(sql,[mesg,other,main,main],function(err,res){            
@@ -124,7 +124,19 @@ db.query(sqlm,[mined_id,othermsgid,othermsgid,mined_id],function(err,res){
 })
 }
 
+chatName= function(id){
+    var sqlm='select name from users where user_id=?';
+return new Promise((resolve,reject)=>{
+db.query(sqlm,[id],function(err,res){
+    return resolve(res);
+})
+})
+}
+
+// ends here
+
 app.get('/homepage',async (req,res) =>{
+    var receivers_ids=[];
     if(req.session.user_id){                
         elements=await callbacking(req.session.user_id);
         array.length=0;
@@ -132,8 +144,9 @@ app.get('/homepage',async (req,res) =>{
         for(const element of elements){
         msg_array.push(await messagess(req.session.user_id,element.receiver_id));           
          array.push(await names(element.receiver_id));
+         receivers_ids.push(element.receiver_id);
         }
-        res.render('home.ejs',{elements:elements,array,msg_array,sessioned_id:req.session.user_id})
+        res.render('home.ejs',{elements:elements,array,msg_array,sessioned_id:req.session.user_id,receivers_ids:receivers_ids})
 }else{
         res.render('login.ejs');
     }
@@ -149,8 +162,26 @@ app.get('/allusers',function(req,res){
     main_user=req.session.user_id;
 })
 
+app.post('/request', async(req,res) =>{
+
+    var automsgsmain='';
+    autoelements=await callbacking(req.body.mine_id);  
+        for(const element of autoelements){            
+            automsgsmain+='<div class="list-item" data-id="19"><div><a href="#" data-abc="true"><span class="w-48 avatar gd-warning">S</span></a></div><div class="flex"><a href="http://localhost:9999/chat-page/'+element.receiver_id+'" class="item-author text-color" data-abc="true">'+await names(element.receiver_id)+'</a><div class="item-except text-muted text-sm h-1x">'+await messagess(req.body.mine_id,element.receiver_id)+'</div></div><div class="no-wrap" style="position: absolute;right: 0;"><div class="item-date text-muted text-sm d-md-block">13/12 18</div></div></div>';
+        }        
+        let buff = new Buffer(automsgsmain);
+        let base64data = buff.toString('base64');        
+        res.json({
+            msg:base64data
+        })
+})
+
+// socket related code
+
 var users_idss=[];
 var msegs={};
+var autoelements='';
+
 io.on('connection', (socket) => {
 
 socket.emit('connected',socket.id);
@@ -190,24 +221,36 @@ socket.on('get_msg',async (data)=>{
 
 socket.on('online',function(data){  
     online_status[data]='online';
-    console.log(online_status);
 })
 
 socket.on('logout',function(data){
-    console.log(online_status[data]);    
     online_status[data]='offline';
-    console.log(online_status);
 })
 
 socket.on('/goout',function(){
     socket.disconnect();
 })
 
+socket.on('name',async(data) => {
+    chatNames=await chatName(data);    
+    socket.emit('usersname',chatNames[0].name);
 })
+
+
+// socket.on('checking',async(data) => {
+
+// socket.emit('sent',automsgsmain);
+
+// });
+})
+
+// End here
 
 app.get('/chat-page/:uid',function(req,res){
     res.render('chat-window.ejs',{otherid:req.params.uid,mine:req.session.user_id});
 })
+
+
 
 
 app.get('/logout',function(req,res){    
