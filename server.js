@@ -218,6 +218,16 @@ socket.on('get_msg',async (data)=>{
     setInterval(checkedStat, 1500)
 })
 
+socket.on('typing',function(data){
+    var typeMsg='typing';
+    var NottypeMsg='nottyping';
+    console.log(data);
+    if(data[2]=='yes'){
+    socket.to(users_idss[data[1]]).emit('display',typeMsg);
+    }else{
+        socket.to(users_idss[data[1]]).emit('display',NottypeMsg);
+    }
+})
 
 socket.on('online',function(data){  
     online_status[data]='online';
